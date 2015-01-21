@@ -381,5 +381,20 @@ function xmldb_simplecertificate_upgrade($oldversion=0) {
     	// Simplecertificate savepoint reached.
     	upgrade_mod_savepoint(true, 2014051000, 'simplecertificate');
     }
+    //////v2.3
+    if ($oldversion < 2015011928) {
+    
+    	// Define field sslcertfile to be added to simplecertificate.
+    	$table = new xmldb_table('simplecertificate');
+    	$field = new xmldb_field('crtsingnature', XMLDB_TYPE_TEXT, null, null, null, null, null, 'timestartdatefmt');
+    
+    	// Conditionally launch add field sslcertfile.
+    	if (!$dbman->field_exists($table, $field)) {
+    		$dbman->add_field($table, $field);
+    	}
+    
+    	// Simplecertificate savepoint reached.
+    	upgrade_mod_savepoint(true, 2015011928, 'simplecertificate');
+    }
     return true;
 }

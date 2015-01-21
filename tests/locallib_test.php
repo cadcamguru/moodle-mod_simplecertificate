@@ -119,7 +119,7 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
                 , $fileinfo['filepath'], $cert->get_instance()->secondimage));
         $pdf = $cert->testable_create_pdf($cert->get_issue());
         $this->assertNotNull($pdf);
-        $filepath = $CFG->dirroot . '/mod/simplecertificate/tests/test_certificate_'.testable_simplecertificate::PLUGIN_VERSION.'.pdf';
+        $filepath = $CFG->dirroot . '/mod/simplecertificate/tests/test_certificate_'.testable_simplecertificate::get_plugin_version().'.pdf';
         $pdf->Output($filepath, 'F');
         $this->assertTrue(file_exists($filepath));
         $this->write_to_report("Is all images is in certificate: ? Ok");
@@ -131,6 +131,48 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
         $this->write_to_report("Can create certificate without images ? Ok");
         
     }
+    
+    public function test_certificate_digital_sign_CRT() {
+        echo __METHOD__."\n";
+        global $DB, $CFG;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+    
+        //The default data generation puts firstpage and secondpage background images
+        $cert = $this->create_instance(array('crtsingnature'=>$CFG->dirroot . '/mod/simplecertificate/tests/fixtures/digtal-sign-blankpass.crt'));
+        $fs=get_file_storage();
+        
+        //Test Digital Sign CRT without password
+        ////Test if CRT exists (uploaded)
+        $fileinfo=$cert::get_digital_sign_crt_fileinfo($cert->get_context());
+        $this->assertTrue($fs->file_exists($fileinfo['contextid'], $fileinfo['component'], $fileinfo['filearea'], $fileinfo['itemid'], 
+                            $fileinfo['filepath'], $cert->get_instance()->crtsingnature));
+        $this->write_to_report("Upload Digital Sign CRT: ? Ok");
+        
+        ////Test creation on certificate with Digital Sign CRT
+        ////openssl req -x509 -nodes -days 365000 -newkey rsa:1024 -keyout my.crt -out my.crt
+        $issuecert= $cert->get_issue($this->students[2]);
+        $file=$cert->testable_get_issue_file($issuecert);
+        $this->assertTrue(empty($issuecert->haschange));
+        $this->assertTrue($cert->testable_issue_file_exists($issuecert));
+        $this->assertEquals($issuecert->pathnamehash, $file->get_pathnamehash());
+        $this->write_to_report("Issue a certificate with Digital Sign CRT: ? Ok");
+        
+        ////Test Digital Sign CRT with password - pass is 1234567
+        ////openssl req -x509 -days 365000 -newkey rsa:1024 -keyout my.crt -out my.crt
+        $cert = $this->create_instance(array('crtsingnature'=>$CFG->dirroot . '/mod/simplecertificate/tests/fixtures/digtal-sign-withpass.crt'));
+        $fileinfo=$cert::get_digital_sign_crt_fileinfo($cert->get_context());
+        $this->assertTrue($fs->file_exists($fileinfo['contextid'], $fileinfo['component'], $fileinfo['filearea'], $fileinfo['itemid'],
+                            $fileinfo['filepath'], $cert->get_instance()->crtsingnature));
+        
+        $issuecert= $cert->get_issue($this->students[2]);
+        $file=$cert->testable_get_issue_file($issuecert);
+        $this->assertTrue(empty($issuecert->haschange));
+        $this->assertTrue($cert->testable_issue_file_exists($issuecert));
+        $this->assertEquals($issuecert->pathnamehash, $file->get_pathnamehash());
+
+    }
+    
     
     public function test_certificate_texts() {
         echo __METHOD__."\n";
@@ -434,9 +476,9 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
 	
 	public static function setUpBeforeClass() {
 		global $CFG;
-		
+
 		$moodle_version='moodle-'.moodle_major_version();
-		$moodle_version.=' '.testable_simplecertificate::PLUGIN_VERSION;
+		$moodle_version.=' '.testable_simplecertificate::get_plugin_version();
 		$moodle_version.=' build: '.get_config('mod_simplecertificate','version')."\n";
 		
 		self::$fhandle = fopen("$CFG->dirroot/mod/simplecertificate/TestCaseResults.txt", "w");
@@ -452,8 +494,10 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
 		global $CFG;
 		
 		fwrite(self::$fhandle, "\nEnd ofPHPUnit tests.\n------\n\n");
-		$othertests = file_get_contents ("$CFG->dirroot/mod/simplecertificate/tests/other/TestCaseChkLst.txt");
-		fwrite(self::$fhandle, $othertests);
+		if (file_exists("$CFG->dirroot/mod/simplecertificate/tests/other/TestCaseChkLst.txt")) {
+		  $othertests = file_get_contents ("$CFG->dirroot/mod/simplecertificate/tests/other/TestCaseChkLst.txt");
+		  fwrite(self::$fhandle, $othertests);
+		}
 		fclose(self::$fhandle);
 		parent::tearDownAfterClass();
 	}
@@ -462,5 +506,7 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
 		self::$count++;
 		fwrite(self::$fhandle, self::$count.'- '.$str."\n");
 	}
+	
+	
 }
 

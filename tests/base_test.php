@@ -223,7 +223,31 @@ class mod_simplecertificate_base_testcase extends advanced_testcase {
  */
 class testable_simplecertificate extends simplecertificate {
 
-    const PLUGIN_VERSION = '2.2.0-RC';
+   
+    public static function get_plugin_version() {
+        global $CFG;
+    
+        $plugin = new stdClass();
+        require ("$CFG->dirroot/mod/simplecertificate/version.php");
+        $maturity = '';
+        switch ($plugin->maturity) {
+        	case MATURITY_ALPHA:
+        	    $version = $plugin->release . ' - Alpha';
+        	    break;
+        	case MATURITY_BETA:
+        	    $version = $plugin->release . ' - Beta';
+        	    break;
+        	case MATURITY_RC:
+        	    $version = $plugin->release . ' - RC';
+        	    break;
+        	case MATURITY_STABLE:
+        	    $version = $plugin->release . ' - Final';
+        	    break;
+        }
+        unset($plugin);
+        return $version;
+    }
+//    const PLUGIN_VERSION = '2.2.0-RC';
 
     /**
      * Overwrites parents to format $formdata

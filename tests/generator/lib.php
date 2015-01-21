@@ -122,6 +122,15 @@ class mod_simplecertificate_generator extends testing_module_generator {
             $record->secondimage = $fileinfo['itemid'];
             $record->images[1] = $fileinfo['filename'];
         }
+        
+        if (!empty($record->crtsingnature)) {
+            // Digital sign CRT
+            $fileinfo['itemid'] = rand(21,30);
+            $fileinfo['filename'] = basename($record->crtsingnature);
+            $file = $fs->create_file_from_pathname($fileinfo, $record->crtsingnature);
+            $record->crtsingnature = $fileinfo['itemid'];
+            //$record->images[1] = $fileinfo['filename'];
+        }
  
         return parent::create_instance($record, (array)$options);
     }

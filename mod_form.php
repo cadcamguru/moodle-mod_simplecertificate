@@ -210,16 +210,14 @@ class mod_simplecertificate_mod_form extends moodleform_mod {
         $mform->addElement('select', 'delivery', get_string('delivery', 'simplecertificate'), $deliveryoptions);
         $mform->setDefault('delivery', 0);
         $mform->addHelpButton('delivery', 'delivery', 'simplecertificate');
+        
+        //SSL CRT file
+        $mform->addElement('filemanager', 'crtsingnature', get_string('crtsingnature','simplecertificate'), null,
+        		array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 1, 'accepted_types' => '*'));
+        $mform->addHelpButton('crtsingnature', 'crtsingnature', 'simplecertificate');
+        $mform->setAdvanced('crtsingnature');
 
-        //Report Cert
-        //TODO acredito que seja para verificar o certificado pelo código, se for isto pode remover.
-        $reportfile = "$CFG->dirroot/simplecertificates/index.php";
-        if (file_exists($reportfile)) {
-            $mform->addElement('selectyesno', 'reportcert', get_string('reportcert', 'simplecertificate'));
-            $mform->setDefault('reportcert', 0);
-            $mform->addHelpButton('reportcert', 'reportcert', 'simplecertificate');
-        }
-
+        
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
     }
@@ -267,6 +265,20 @@ class mod_simplecertificate_mod_form extends moodleform_mod {
             } else {
                 $data['secondpagetext'] = array('text' =>'', 'format'=> FORMAT_HTML);
             }
+            
+            //Get SSl CRT crtsingnature
+            $crtsingnaturedraftitemid = file_get_submitted_draft_itemid('crtsingnature');
+            $crtsingnaturefileinfo = simplecertificate::get_digital_sign_crt_fileinfo($this->context);
+            file_prepare_draft_area($crtsingnaturedraftitemid, 
+            						$crtsingnaturefileinfo['contextid'], 
+            						$crtsingnaturefileinfo['component'], 
+            						$crtsingnaturefileinfo['filearea'], 
+            						$secondimagefileinfo['itemid'], 
+            						array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 1, 'accepted_types' => '*'));
+            
+            $data['crtsingnature'] = $crtsingnaturedraftitemid;
+            
+            
         } else { //Load default
             $data['certificatetext'] = array('text' =>'', 'format'=> FORMAT_HTML);
             $data['secondpagetext'] = array('text' =>'', 'format'=> FORMAT_HTML);
@@ -329,6 +341,12 @@ class mod_simplecertificate_mod_form extends moodleform_mod {
                 $data->secondimage = null;
             }
         }
+        
+        if (isset($data->crtsingnature) && !empty($data->crtsingnature)) {
+        	if (!$this->check_has_files('crtsingnature')) {
+        		$data->crtsingnature = null;
+        	}
+        }
 
         return $data;
     }
@@ -355,7 +373,7 @@ class mod_simplecertificate_mod_form extends moodleform_mod {
         global $USER;
         
         $draftitemid = file_get_submitted_draft_itemid($itemname);
-        file_prepare_draft_area($draftitemid, $this->context->id, 'mod_simplecertificate', 'imagefilecheck', null, 
+        file_prepare_draft_area($draftitemid, $this->context->id, 'mod_simplecertificate', 'uploadfilecheck', null, 
                                 $this->get_filemanager_options_array());
         
         // Get file from users draft area.

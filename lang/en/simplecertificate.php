@@ -272,3 +272,12 @@ $string['upgradeerror'] = 'Error while upgrading $a';
 //Verify envent
 $string['eventcertificate_verified'] = 'Certificate verified';
 $string['eventcertificate_verified_description'] = 'The user with id {$a->userid} verified the certificate with id {$a->certificateid}, issued to user with id {$a->certiticate_userid}.';
+
+//CRT Signature
+$string['crtsingnature']='Digital Signature Certificate (CRT)';
+$string['crtsingnature_help']='A file with Digital Signature Certificate (CRT)';
+// $string['']='';
+// $string['']='';
+// $string['']='';
+// $string['']='';
+// $string['']='';

@@ -39,11 +39,13 @@ class simplecertificate {
      * @var CERTIFICATE_COMPONENT_NAME  base componete name
      * @var CERTIFICATE_IMAGE_FILE_AREA image filearea
      * @var CERTIFICATE_ISSUES_FILE_AREA issued certificates filearea
+     * @var CERTIFICATE_DIGITAL_SIGN_CRT_FILE_AREA Certificate Signature (CRT) filearea
      */
     const CERTIFICATE_COMPONENT_NAME = 'mod_simplecertificate';
     const CERTIFICATE_IMAGE_FILE_AREA = 'image';
     const CERTIFICATE_ISSUES_FILE_AREA = 'issues';
-   
+    const CERTIFICATE_DIGITAL_SIGN_CRT_FILE_AREA = 'crts';
+
     const OUTPUT_OPEN_IN_BROWSER = 0;
     const OUTPUT_FORCE_DOWNLOAD = 1;
     const OUTPUT_SEND_EMAIL = 2;
@@ -488,6 +490,17 @@ class simplecertificate {
             $formdata->secondimage = null;
         }
         
+        //Signatur Cert File
+        if (isset($formdata->crtsingnature)) {
+        	if (!empty($formdata->crtsingnature)) {
+        		$fileinfo = self::get_digital_sign_crt_fileinfo($this->context->id);
+        		$fileinfo = self::get_crt_sign_fileinfo($this->context->id);
+        		$formdata->crtsingnature = $this->save_upload_file($formdata->crtsingnature, $fileinfo);
+        	}
+        } else {
+        	$formdata->crtsingnature= null;
+        }
+        
         foreach ($formdata as $name => $value) {
             $update->{$name} = $value;
         }
@@ -527,6 +540,32 @@ class simplecertificate {
         $file = array_shift($files);
         return $file->get_filename();
     }
+    
+    /**
+     * Get the first page background image fileinfo
+     *
+     * @param mixed $context The module context object or id
+     * @return the first page background image fileinfo
+     */
+
+    public static function get_digital_sign_crt_fileinfo($context) {
+    
+        if (is_object($context)) {
+    		$contextid = $context->id;
+    	} else {
+    		$contextid = $context;
+    	}
+    
+    	$fileinfo = array(
+    			'contextid' => $contextid,         // ID of context
+    			'component' => self::CERTIFICATE_COMPONENT_NAME,         // usually = table name
+    			'filearea' => self::CERTIFICATE_DIGITAL_SIGN_CRT_FILE_AREA,         // usually = table name
+    			'itemid' => 1,         // usually = ID of row in table
+    			'filepath' => '/'
+    	);        // any path beginning and ending in /
+    	 
+    	return $fileinfo;
+    }
 
     /**
      * Get the first page background image fileinfo
@@ -551,6 +590,8 @@ class simplecertificate {
        
         return $fileinfo;
     }
+    
+        
 
     /**
      * Get the second page background image fileinfo
@@ -976,7 +1017,7 @@ class simplecertificate {
      * @return mixed PDF object or error
      */
     protected function create_pdf(stdClass $issuecert, $pdf = null, $isbulk = false) {
-        global $DB, $CFG;
+        global $DB, $CFG, $USER;
         
         //Check if certificate file is already exists, if issued has changes, it will recreated
         if (empty($issuecert->haschange) && $this->issue_file_exists($issuecert) && !$isbulk) {
@@ -987,10 +1028,42 @@ class simplecertificate {
             $pdf = $this->create_pdf_object();
         }
         
+        //Getting Files
+        $fs = get_file_storage();
+        
+        if (!empty($this->get_instance()->crtsingnature)) {
+
+            $fileinfo = self::get_digital_sign_crt_fileinfo($this->context->id);
+            $crtsignfile = $fs->get_file($fileinfo['contextid'], $fileinfo['component'], $fileinfo['filearea'], 
+                                        $fileinfo['itemid'], $fileinfo['filepath'], $this->get_instance()->crtsingnature);
+            if ($crtsignfile) {
+                $temp_filename = $crtsignfile->copy_content_to_temp(self::CERTIFICATE_COMPONENT_NAME, 'crtsingnaturefile');
+                // To create self-signed signature: (linux)
+                // openssl req -x509 -nodes -days 365000 -newkey rsa:1024 -keyout tcpdf.crt -out tcpdf.crt
+                // To export crt to p12:
+                // openssl pkcs12 -export -in tcpdf.crt -out tcpdf.p12
+                // To convert pfx certificate to pem:
+                // openssl pkcs12 -in tcpdf.pfx -out tcpdf.crt -nodes
+                
+                // TCPDF::setSignature ($signing_cert = '', $private_key = '', $private_key_password = '', $extracerts = '', $cert_type = 2, $info = array(), $approval = '')
+                $info = array(
+                        'Name' => $this->get_instance()->name . ' - ' . $this->get_instance()->coursename,
+                        'Location' => $CFG->wwwroot,
+                        'Reason' => get_string('awardedsubject','simplecertificate', array('student' => fullname($USER), 'certificate'=>format_string($this->get_instance()->name, true))),
+                        'ContactInfo' => $CFG->supportname .'<'.$CFG->supportemail.'> - '. ((empty($CFG->supportpage))? $CFG->wwwroot : $CFG->supportpage)
+                );
+                //TODO test if certificate has a password, it must be set, I don't know
+                $pdf->setSignature($temp_filename, $temp_filename, random_string(), '', 1, $info, '');
+                $pdf->Image($temp_filename, 0, 0, $this->get_instance()->width, $this->get_instance()->height);
+                @unlink($temp_filename);
+            } else {
+                print_error(get_string('filenotfound', 'simplecertificate', $this->get_instance()->crtsingnature));
+            }
+        }
+        
         $pdf->AddPage();
         
-        //Getting certificare image
-        $fs = get_file_storage();
+       
         
         // Get first page image file
         if (!empty($this->get_instance()->certificateimage)) {
