@@ -258,6 +258,16 @@ class mod_simplecertificate_mod_form extends moodleform_mod {
             $secondimagefileinfo = simplecertificate::get_certificate_secondimage_fileinfo($this->context);
             file_prepare_draft_area($secondimagedraftitemid, $secondimagefileinfo['contextid'], $secondimagefileinfo['component'], $secondimagefileinfo['filearea'], $secondimagefileinfo['itemid'], $this->get_filemanager_options_array());
             $data['secondimage'] = $secondimagedraftitemid;
+            
+            //Get Digital Sign CRT file
+            $crtsingnaturedraftitemid = file_get_submitted_draft_itemid('crtsingnature');
+            $crtsingnaturefileinfo = simplecertificate::get_digital_sign_crt_fileinfo($this->context);
+            
+            file_prepare_draft_area($crtsingnaturedraftitemid, $crtsingnaturefileinfo['contextid'], $crtsingnaturefileinfo['component'],
+                                    $crtsingnaturefileinfo['filearea'], $crtsingnaturefileinfo['itemid'],
+                                    array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 1, 'accepted_types' => '*'));
+            
+            $data['crtsingnature'] = $crtsingnaturedraftitemid;
 
             //Get backpage text
             if (!empty($data['secondpagetext'])) {
@@ -266,17 +276,7 @@ class mod_simplecertificate_mod_form extends moodleform_mod {
                 $data['secondpagetext'] = array('text' =>'', 'format'=> FORMAT_HTML);
             }
             
-            //Get SSl CRT crtsingnature
-            $crtsingnaturedraftitemid = file_get_submitted_draft_itemid('crtsingnature');
-            $crtsingnaturefileinfo = simplecertificate::get_digital_sign_crt_fileinfo($this->context);
-            file_prepare_draft_area($crtsingnaturedraftitemid, 
-            						$crtsingnaturefileinfo['contextid'], 
-            						$crtsingnaturefileinfo['component'], 
-            						$crtsingnaturefileinfo['filearea'], 
-            						$secondimagefileinfo['itemid'], 
-            						array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 1, 'accepted_types' => '*'));
-            
-            $data['crtsingnature'] = $crtsingnaturedraftitemid;
+           
             
             
         } else { //Load default

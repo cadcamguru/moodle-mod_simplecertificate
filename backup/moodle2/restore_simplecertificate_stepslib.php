@@ -111,11 +111,13 @@ class restore_simplecertificate_activity_structure_step extends restore_activity
 
     protected function after_execute() {
         global $CFG;
-
+        require_once ($CFG->dirroot . '/mod/simplecertificate/locallib.php');
+        
         // Add simplecertificate related files, no need to match by itemname (just internally handled context)
-        $this->add_related_files('mod_simplecertificate', 'intro', null);
-        $this->add_related_files('mod_simplecertificate', 'image', null);
-        $this->add_related_files('mod_simplecertificate', 'issues', null);
+        $this->add_related_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, 'intro', null);
+        $this->add_related_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, simplecertificate::CERTIFICATE_IMAGE_FILE_AREA, null);
+        $this->add_related_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, simplecertificate::CERTIFICATE_ISSUES_FILE_AREA, null);
+        $this->add_related_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, simplecertificate::CERTIFICATE_DIGITAL_SIGN_CRT_FILE_AREA, null);
     }
     
       

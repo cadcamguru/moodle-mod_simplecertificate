@@ -47,7 +47,8 @@ class backup_simplecertificate_activity_structure_step extends backup_activity_s
                 'coursename', 'coursehours', 'outcome', 'certdate', 'certdatefmt', 'certgrade', 
                 'gradefmt', 'emailfrom', 'emailothers', 'emailteachers', 'reportcert', 'delivery', 
                 'requiredtime', 'printqrcode', 'qrcodefirstpage', 'codex', 'codey', 'enablesecondpage',
-                'secondpagex', 'secondpagey', 'secondpagetext', 'secondpagetextformat', 'secondimage', 'timestartdatefmt'));
+                'secondpagex', 'secondpagey', 'secondpagetext', 'secondpagetextformat', 'secondimage', 'timestartdatefmt',
+                'crtsingnature'));
 
 
 
@@ -77,6 +78,7 @@ class backup_simplecertificate_activity_structure_step extends backup_activity_s
        
         //$certificate->annotate_files('mod_simplecertificate', 'intro', null);
         $certificate->annotate_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, simplecertificate::CERTIFICATE_IMAGE_FILE_AREA, null);
+        $certificate->annotate_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, simplecertificate::CERTIFICATE_DIGITAL_SIGN_CRT_FILE_AREA, null);
         $issue->annotate_files(simplecertificate::CERTIFICATE_COMPONENT_NAME, simplecertificate::CERTIFICATE_ISSUES_FILE_AREA, 'id');
         
         
