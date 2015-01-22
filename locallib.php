@@ -2163,8 +2163,11 @@ class simplecertificate {
             
             echo html_writer::label(get_string('bulkaction', 'simplecertificate'), 'menutype', true);
             echo '&nbsp;';
-            $selectoptions = array('pdf' => get_string('onepdf', 'simplecertificate'), 
-                    'zip' => get_string('multipdf', 'simplecertificate'), 'email' => get_string('sendtoemail', 'simplecertificate'));
+            $selectoptions = array('pdf' => get_string('onepdf', 'simplecertificate'),
+                    'zip' => get_string('multipdf', 'simplecertificate'), 
+                    'email' => get_string('sendtoemail', 'simplecertificate'),
+                    'delete' => get_string('deleteissuescert', 'simplecertificate')
+            );
             echo html_writer::select($selectoptions, 'type', 'pdf');
             $table = new html_table();
             $table->width = "95%";
@@ -2183,8 +2186,8 @@ class simplecertificate {
                 }
             }
             
-            $downloadbutton = $OUTPUT->single_button($url->out_as_local_url(false, array('action' => 'download')), 
-                                                    get_string('bulkbuttonlabel', 'simplecertificate'));
+            $downloadbutton = $OUTPUT->single_button($url->out_as_local_url(false, array('action' => 'send')), 
+                                                    get_string('bulkbuttonsend', 'simplecertificate'));
             
             echo $OUTPUT->paging_bar($usercount, $page, $perpage, $url);
             echo '<br />';
@@ -2192,7 +2195,7 @@ class simplecertificate {
             echo html_writer::tag('div', $downloadbutton, array('style' => 'text-align: center'));
             echo '</form>';
         
-            } else if ($action == 'download') {
+        } else if ($action == 'send') {
             $type = $url->get_param('type');
             
             // Calculate file name
@@ -2269,6 +2272,18 @@ class simplecertificate {
                     }
                     $url->remove_params('action', 'type');
                     redirect($url, get_string('emailsent', 'simplecertificate'), 5);
+                break;
+                
+                case 'delete':
+                    // Delete selected user's certificates
+                    $certinstance = $this->get_instance();
+                    foreach ($users as $user) {
+                        if (!has_capability('mod/simplecertificate:manage', $this->context, $user)){
+                            $this->remove_issue($this->get_issue($user), $certinstance);
+                        }
+                    }
+                    $url->remove_params('action', 'type');
+                    redirect($url, get_string('deleteissuescertmsg', 'simplecertificate'), 5);
                 break;
             }
             exit();

@@ -242,7 +242,7 @@ $string['showusers'] = 'Show';
 $string['completedusers'] = 'Users that met the activity conditions';
 $string['allusers'] = 'All users';
 $string['bulkaction'] = 'Choose a Bulk Operation';
-$string['bulkbuttonlabel'] = 'Send';
+$string['bulkbuttonsend'] = 'Send';
 $string['emailsent'] = 'The emails have been sent';
 
 $string['issueddownload'] = 'Issued certificate [id: {$a}] downloaded';
@@ -273,10 +273,12 @@ $string['upgradeerror'] = 'Error while upgrading $a';
 $string['eventcertificate_verified'] = 'Certificate verified';
 $string['eventcertificate_verified_description'] = 'The user with id {$a->userid} verified the certificate with id {$a->certificateid}, issued to user with id {$a->certiticate_userid}.';
 
-//CRT Signature
-$string['crtsingnature']='Digital Signature Certificate (CRT)';
-$string['crtsingnature_help']='A file with Digital Signature Certificate (CRT)';
-// $string['']='';
+// CRT Signature
+$string['crtsingnature'] = 'Digital Signature Certificate (CRT)';
+$string['crtsingnature_help'] = 'A file with Digital Signature Certificate (CRT)';
+
+$string['deleteissuescert'] = 'Remove issued certificates';
+$string['deleteissuescertmsg'] = 'Certificates removed';
 // $string['']='';
 // $string['']='';
 // $string['']='';
