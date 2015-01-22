@@ -289,6 +289,20 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
         $this->write_to_report("Update certificate updates haschange status in issued certificates? Ok");
         
     }
+    public function  test_required_time_in_course() {
+        echo __METHOD__."\n";
+        $this->resetAfterTest();
+        $this->setUser($this->students[1]);
+        
+        //Test if user has required time in course
+        //52594876 = 10 years in minutes
+        $cert = $this->create_instance(array('requiredtime'=> 52594876));
+        
+        //In test, log managers are not avaliable yet (2.8)
+        $this->setExpectedException('moodle_exception', 'Logs not available');
+        $this->assertFalse($cert->has_required_time_in_course());
+        $this->write_to_report("Users can't issue a certificate if it doesn't have enough time in course ? Ok");
+    }
     
     public function  test_create_pdf_file() {
         echo __METHOD__."\n";

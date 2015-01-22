@@ -494,7 +494,7 @@ class simplecertificate {
         if (isset($formdata->crtsingnature)) {
         	if (!empty($formdata->crtsingnature)) {
         		$fileinfo = self::get_digital_sign_crt_fileinfo($this->context->id);
-        		$fileinfo = self::get_crt_sign_fileinfo($this->context->id);
+        		$fileinfo = self::get_digital_sign_crt_fileinfo($this->context->id);
         		$formdata->crtsingnature = $this->save_upload_file($formdata->crtsingnature, $fileinfo);
         	}
         } else {
@@ -1292,11 +1292,13 @@ class simplecertificate {
 
     /**
      * Get the time the user has spent in the course
+     * replace the old method get_course_time($user = null) 
      * 
      * @param int $userid User ID (default= $USER->id)
-     * @return int the total time spent in seconds
+     * @return bool true if user has the required time in course (requiredtime) 
      */
-    public function get_course_time($user = null) {
+
+    public function has_required_time_in_course($user = null) {
         global $CFG, $USER;
         
         if (empty($user)) {
@@ -1310,17 +1312,19 @@ class simplecertificate {
         }
         $manager = get_log_manager();
         $selectreaders = $manager->get_readers('\core\log\sql_select_reader');
-        $reader = reset($selectreaders);
 
-        //This can take a log time to process, but it's accurate
-        // it's can be done by get only first and last log entry creation time, 
-        // but it's far more inaccurate,  could have an option to choose.
+        if (empty($selectreaders)) {
+            throw new moodle_exception('logfilenotavailable');
+        }
+
+        $reader = reset($selectreaders);
         set_time_limit(0);
         $totaltime = 0;
         $sql = "action = 'viewed' AND target = 'course' AND courseid = :courseid AND userid = :userid";
         
         if ($logs = $reader->get_events_select($sql, array('courseid' => $this->get_course()->id, 'userid' => $userid), 
             'timecreated ASC', '', '')) {
+            $requiredtimeincourse=$this->get_instance()->requiredtime;
             foreach ($logs as $log) {
                 if (empty($login)) {
                     // For the first time $login is not set so the first log is also the first login
@@ -1334,13 +1338,16 @@ class simplecertificate {
                     // the timeout 
                     //Register session value so that we have found a new session!
                     $totaltime += $delay;
+
+                    if (($totaltime/60) >= $requiredtimeincourse) {
+                        return true;
+                    }
                 }
                 // Now the actual log became the previous log for the next cycle
                 $lasthit = $log->timecreated;
             }
         }
-        return $totaltime / 60;
-        
+        return false;
     }
 
     /**
@@ -1704,7 +1711,7 @@ class simplecertificate {
         if ($chkcompletation) {
             $completion = new completion_info($this->course);
             if ($completion->is_enabled($this->coursemodule) && $this->get_instance()->requiredtime) {
-                if ($this->get_course_time($user) < $this->get_instance()->requiredtime) {
+                if (!$this->has_required_time_in_course($user->id)) {
                     $a = new stdClass();
                     $a->requiredtime = $this->get_instance()->requiredtime;
                     return get_string('requiredtimenotmet', 'simplecertificate', $a);

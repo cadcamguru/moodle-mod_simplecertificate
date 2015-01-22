@@ -245,7 +245,7 @@ function simplecertificate_get_completion_state($course, $cm, $userid, $type) {
     $simplecertificate = new simplecertificate($context, $cm, $course);
    
     if ($requiredtime = $simplecertificate->get_instance()->requiredtime) {
-        return ($simplecertificate->get_course_time($userid) >= $requiredtime);
+        return $simplecertificate->has_required_time_in_course($userid);
     }
     // Completion option is not enabled so just return $type
     return $type;
