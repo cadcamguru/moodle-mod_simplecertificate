@@ -655,6 +655,7 @@ class simplecertificate {
             $issuecert->code = $this->get_issue_uuid();
             // Avoiding not null restriction;
             $issuecert->pathnamehash = '';
+            $issuecert->revoked = 0;
             
             if (has_capability('mod/simplecertificate:manage', $this->context, $userid)) {
                 $issuecert->id = 0;
@@ -1151,6 +1152,25 @@ class simplecertificate {
         $pdf->Cell(50, 0, $code, 'LRB', 0, 'C', true, '', 2);
     }
 
+    private function get_issued_cert_fileinfo(stdClass $context, stdClass $issuedcert) {
+        if (is_object($context)) {
+            $contextid = $context->id;
+        } else {
+            $contextid = $context;
+        }
+        $filename = str_replace(' ', '_', clean_filename($issuedcert->certificatename . ' ' . $issuedcert->id . '.pdf'));
+        $fileinfo = array('contextid' => $contextid,
+                'component' => self::CERTIFICATE_COMPONENT_NAME,
+                'filearea' => self::CERTIFICATE_ISSUES_FILE_AREA,
+                'itemid' => $issuedcert->id,
+                'filepath' => '/',
+                'mimetype' => 'application/pdf',
+                'userid' => $issuedcert->userid,
+                'filename' => $filename
+        );
+        
+        return $fileinfo;
+    }
     /**
      * Save a certificate pdf file
      * 
@@ -1190,16 +1210,7 @@ class simplecertificate {
             
             // Prepare file record object
             $context = $this->get_context();
-            $filename = str_replace(' ', '_', clean_filename($issuecert->certificatename . ' ' . $issuecert->id . '.pdf'));
-            $fileinfo = array('contextid' => $context->id, 
-                    'component' => self::CERTIFICATE_COMPONENT_NAME, 
-                    'filearea' => self::CERTIFICATE_ISSUES_FILE_AREA, 
-                    'itemid' => $issuecert->id, 
-                    'filepath' => '/', 
-                    'mimetype' => 'application/pdf', 
-                    'userid' => $issuecert->userid, 
-                    'filename' => $filename
-            );
+            $fileinfo = $this->get_issued_cert_fileinfo($context, $issuecert);
             
             $fs = get_file_storage();
             if (!$file = $fs->create_file_from_string($fileinfo, $pdf->Output('', 'S'))) {
@@ -1349,6 +1360,82 @@ class simplecertificate {
         }
         return false;
     }
+    
+    /**
+     * Put a Watermark in certificate file
+     * 
+     * @param stored_file $file Certificate pdf file
+     * @param string $wmstr Watermark Text
+     * @return a file instance with watermark
+     */
+    public static function put_watermark($file, $wmtext) {
+        global $CFG;
+        require_once ($CFG->dirroot . '/mod/simplecertificate/lib/fpdi/fpdi.php');
+        
+        // copy to a tmp file
+        $tmpfile = $file->copy_content_to_temp();
+        
+        // TCPF doesn't import files yet, so i must use FPDI
+        $pdf = new FPDI();
+        $pageCount = $pdf->setSourceFile($tmpfile);
+        
+        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+            // import a page
+            $templateId = $pdf->importPage($pageNo);
+            // get the size of the imported page
+            $size = $pdf->getTemplateSize($templateId);
+        
+            // create a page (landscape or portrait depending on the imported page size)
+            if ($size['w'] > $size['h']) {
+                $pdf->AddPage('L', array($size['w'], $size['h']));
+                // Font size 1/3 Height if it landscape
+                $fontsize = $size['h'] / 3;
+            } else {
+                $pdf->AddPage('P', array($size['w'], $size['h']));
+                // Font size 1/3 Width if it portrait
+                $fontsize = $size['w'] / 3;
+            }
+        
+            // use the imported page
+            $pdf->useTemplate($templateId);
+        
+            // Calculating the rotation angle
+            $rotAngle = (atan($size['h'] / $size['w']) * 180) / pi();
+            // Find the middle of the page to use as a pivot at rotation.
+            $mX = ($size['w'] / 2);
+            $mY = ($size['h'] / 2);
+        
+            // Set the transparency of the text to really light
+            $pdf->SetAlpha(0.25);
+        
+            $pdf->StartTransform();
+            $pdf->Rotate($rotAngle, $mX, $mY);
+            $pdf->SetFont("freesans", "B", $fontsize);
+        
+            $pdf->SetXY(0, $mY);
+            $boder_style = array(
+                    'LTRB' => array('width' => 2, 'dash' => $fontsize / 5, 'cap' => 'round', 'join' => 'round',
+                            'phase' => $fontsize / $mX));
+
+            $pdf->Cell($size['w'], $fontsize, $wmtext, $boder_style, 0, 'C', false, '',
+            4, true, 'C', 'C');
+            $pdf->StopTransform();
+        
+            // Reset the transparency to default
+            $pdf->SetAlpha(1);
+        
+        }
+        // Set protection seems not work, so comment
+        // $pdf->SetProtection(array('print', 'modify', 'print-high'),null, random_string(), '1',null);
+        
+        // For DEGUG
+        // $pdf->Output($file->get_filename(), 'I');
+        
+        // Save and send tmpfiles
+        $pdf->Output($tmpfile, 'F');
+        return $tmpfile;
+    }
+    
 
     /**
      * Delivery the issue certificate
@@ -1907,6 +1994,7 @@ class simplecertificate {
         $strgrade = get_string('grade', 'simplecertificate');
         $strcode = get_string('code', 'simplecertificate');
         $strreport = get_string('report', 'simplecertificate');
+        $strrevoked = get_string('certificaterevoked', 'simplecertificate');
         $groupmode = groups_get_activity_groupmode($this->get_course_module());
         $page = $url->get_param('page');
         $perpage = $url->get_param('perpage');
@@ -1939,13 +2027,15 @@ class simplecertificate {
             $table = new html_table();
             $table->width = "95%";
             $table->tablealign = "center";
-            $table->head = array($strto, $strdate, $strgrade, $strcode);
+            $table->head = array($strto, $strdate, $strgrade, $strrevoked,$strcode);
             $table->align = array("left", "left", "center", "center");
             foreach ($users as $user) {
+                $issuedcrt = $this->get_issue($user);
                 $name = $OUTPUT->user_picture($user) . fullname($user);
-                $date = userdate($user->timecreated) . simplecertificate_print_issue_certificate_file($this->get_issue($user));
-                $code = $user->code;
-                $table->data[] = array($name, $date, $this->get_grade($user->id), $code);
+                $date = userdate($user->timecreated) . simplecertificate_print_issue_certificate_file($issuedcrt);
+                $revoked = ($issuedcrt->revoked == 1 ? get_string('yes') : get_string('no'));
+                $code = $issuedcrt->code;
+                $table->data[] = array($name, $date, $this->get_grade($user->id), $revoked, $code);
             }
             
             // Create table to store buttons
@@ -2108,6 +2198,65 @@ class simplecertificate {
         echo $OUTPUT->footer();
     }
 
+    /**
+     * Revoke an issued certificate
+     * 
+     * @param stdClass $issuedcert Issued certificate Obj
+     * @throws moodle_exception
+     */
+    protected function revoke_issued_cert(stdClass $issuedcert) {
+        global $DB;
+        
+        if ($issuedcert->revoked != 1) {
+            $issuedcert->revoked = 1;
+            
+            if ($file = $this->get_issue_file($issuedcert)) {
+                $newcertfile_path = $this->put_watermark($file, strtoupper(get_string('certificaterevoked', 'simplecertificate')));
+                $file->delete();
+                $fs = get_file_storage();
+                $fileinfo = $this->get_issued_cert_fileinfo($this->get_context(), $issuedcert);
+                
+                if (!$newfile = $fs->create_file_from_pathname($fileinfo, $newcertfile_path)) {
+                    print_error('cannotsavefile', 'error', '', $fileinfo['filename']);
+                } else {
+                    $issuedcert->pathnamehash = $newfile->get_pathnamehash();
+                    //Doesn't matter any changes
+                    $issuedcert->haschange = 0;
+                }
+                @unlink($newcertfile_path);
+            }
+            if (!$DB->update_record('simplecertificate_issues', $issuedcert)) {
+                throw new moodle_exception('certificatenot', 'simplecertificate');
+            }
+        }
+    }
+
+    /**
+     * Unrevoke an issued certificate
+     *
+     * @param stdClass $issuedcert Issued certificate Obj
+     * @throws moodle_exception
+     */
+    protected function unrevoke_issued_cert(stdClass $issuedcert) {
+        global $DB;
+        
+        if ($issuedcert->revoked != 0) {
+            if ($file = $this->get_issue_file($issuedcert)) {
+                $file->delete();
+            }
+            $issuedcert->revoked = 0;
+            //Force file creation
+            $issuedcert->haschange = 1;
+            if ($newfile = $this->get_issue_file($issuedcert)){
+                $issuedcert->pathnamehash = $newfile->get_pathnamehash();
+                $issuedcert->haschange = 0;
+            }
+            if (!$DB->update_record('simplecertificate_issues', $issuedcert)) {
+                throw new moodle_exception('certificatenot', 'simplecertificate');
+            }
+        }
+    }
+
     public function view_bulk_certificates(moodle_url $url, array $selectedusers = null) {
         global $OUTPUT, $CFG, $DB;
         
@@ -2166,7 +2315,9 @@ class simplecertificate {
             $selectoptions = array('pdf' => get_string('onepdf', 'simplecertificate'),
                     'zip' => get_string('multipdf', 'simplecertificate'), 
                     'email' => get_string('sendtoemail', 'simplecertificate'),
-                    'delete' => get_string('deleteissuescert', 'simplecertificate')
+                    'revoke' => get_string('revokeissuescertopt', 'simplecertificate'),
+                    'unrevoke' => get_string('unrevokeissuescertopt', 'simplecertificate'),
+                    'delete' => get_string('deleteissuescertopt', 'simplecertificate'),
             );
             echo html_writer::select($selectoptions, 'type', 'pdf');
             $table = new html_table();
@@ -2285,6 +2436,31 @@ class simplecertificate {
                     $url->remove_params('action', 'type');
                     redirect($url, get_string('deleteissuescertmsg', 'simplecertificate'), 5);
                 break;
+                
+                case 'revoke':
+                    // Delete selected user's certificates
+                    $certinstance = $this->get_instance();
+                    foreach ($users as $user) {
+                        if (!has_capability('mod/simplecertificate:manage', $this->context, $user)) {
+                            $this->revoke_issued_cert($this->get_issue($user));
+                        }
+                    }
+                    $url->remove_params('action', 'type');
+                    redirect($url, get_string('revokeissuescertmsg', 'simplecertificate'), 5);
+                break;
+                
+                case 'unrevoke':
+                    // Delete selected user's certificates
+                    $certinstance = $this->get_instance();
+                    foreach ($users as $user) {
+                        if (!has_capability('mod/simplecertificate:manage', $this->context, $user)) {
+                            $this->unrevoke_issued_cert($this->get_issue($user));
+                        }
+                    }
+                    $url->remove_params('action', 'type');
+                    redirect($url, get_string('unrevokeissuescertmsg', 'simplecertificate'), 5);
+                break;
+                
             }
             exit();
         }

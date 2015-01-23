@@ -277,9 +277,13 @@ $string['eventcertificate_verified_description'] = 'The user with id {$a->userid
 $string['crtsingnature'] = 'Digital Signature Certificate (CRT)';
 $string['crtsingnature_help'] = 'A file with Digital Signature Certificate (CRT)';
 
-$string['deleteissuescert'] = 'Remove issued certificates';
+$string['deleteissuescertopt'] = 'Remove issued certificates';
 $string['deleteissuescertmsg'] = 'Certificates removed';
-// $string['']='';
-// $string['']='';
-// $string['']='';
+$string['revokeissuescertopt'] = 'Revoke issued certificates';
+$string['revokeissuescertmsg'] = 'Certificates revoked';
+$string['unrevokeissuescertopt'] = 'Unrevoke issued certificates';
+$string['unrevokeissuescertmsg'] = 'Certificates unrevoked';
+$string['certificaterevoked'] = 'Revoked';
+
+
 // $string['']='';

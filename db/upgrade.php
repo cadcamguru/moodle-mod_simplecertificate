@@ -396,5 +396,19 @@ function xmldb_simplecertificate_upgrade($oldversion=0) {
     	// Simplecertificate savepoint reached.
     	upgrade_mod_savepoint(true, 2015011928, 'simplecertificate');
     }
+    if ($oldversion < 2015012328) {
+    
+        // Define field revoked to be added to simplecertificate_issues.
+        $table = new xmldb_table('simplecertificate_issues');
+        $field = new xmldb_field('revoked', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'pathnamehash');
+    
+        // Conditionally launch add field revoked.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+    
+        // Simplecertificate savepoint reached.
+        upgrade_mod_savepoint(true, 2015012328, 'simplecertificate');
+    }
     return true;
 }

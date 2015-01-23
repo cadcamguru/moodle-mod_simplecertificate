@@ -360,6 +360,41 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
         $this->write_to_report("Managers certificates are not save? Ok");
     
     }
+
+    public function test_revoke_unrevoke_issued_certificates() {
+        echo __METHOD__ . "\n";
+        global $DB;
+        
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $cert = $this->create_instance();
+        $issuecert1 = $cert->get_issue($this->students[0]);
+        
+        // Verify if is NOT revoked
+        $this->assertTrue($issuecert1->revoked == 0);
+        $file1 = $cert->testable_get_issue_file($issuecert1);
+        
+        // Verify if is revoked;
+        $cert->revoke_issued_cert($issuecert1);
+        $fs = get_file_storage();
+        $file2 = $fs->get_file_by_hash($issuecert1->pathnamehash);
+        
+        $this->assertTrue($issuecert1->revoked == 1);
+        $this->assertEquals($issuecert1->pathnamehash, $file1->get_pathnamehash());
+        $this->assertEquals($file1->get_filename(), $file2->get_filename());
+        $this->assertNotEquals($file2->get_contenthash(), $file1->get_contenthash());
+        
+        // Verify if is unrevoked;
+        $cert->unrevoke_issued_cert($issuecert1);
+        $file3 = $fs->get_file_by_hash($issuecert1->pathnamehash);
+        $this->assertTrue($issuecert1->revoked == 0);
+        $this->assertEquals($issuecert1->pathnamehash, $file1->get_pathnamehash());
+        $this->assertEquals($file1->get_filename(), $file3->get_filename());
+        $this->assertNotEquals($file3->get_contenthash(), $file1->get_contenthash());
+        $this->assertNotEquals($file3->get_contenthash(), $file2->get_contenthash());
+        
+        $this->write_to_report("Can revoke/unrevoke issued certificates? Ok");
+    }
     
     public function test_detete_instace_update_timedelete_issues() {
         echo __METHOD__."\n";

@@ -278,5 +278,13 @@ $string['eventcertificate_verified_description'] = 'O usuário com o id {$a->use
 // CRT Signature
 $string['crtsingnature'] = 'Certificado de Assinatura Digital (CRT)';
 $string['crtsingnature_help'] = 'O arquivo contendo o Certificado de Assinatura Digital';
-$string['deleteissuescert'] = 'Remover os certificados emitidos';
+$string['deleteissuescertopt'] = 'Remover certificados emitidos';
 $string['deleteissuescertmsg'] = 'Certificados removidos';
+$string['revokeissuescertopt'] = 'Revogar certificados emitidos';
+$string['revokeissuescertmsg'] = 'Certificados revogados';
+$string['unrevokeissuescertopt'] = 'Desrevogar certificados emitidos';
+$string['unrevokeissuescertmsg'] = 'Certificados desrevogados';
+$string['certificaterevoked'] = 'REVOGADO';
+
+
+
