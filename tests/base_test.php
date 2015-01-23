@@ -432,5 +432,26 @@ class testable_simplecertificate extends simplecertificate {
    	public function testable_get_issued_certificate_users ($sort="ci.timecreated ASC", $groupmode=0, $page = 0, $perpage = self::SIMPLECERT_MAX_PER_PAGE) {
    		return parent::get_issued_certificate_users($sort, $groupmode, $page, $perpage);
 	}
+	
+	/**
+	 * Revoke an issued certificate
+	 *
+	 * @param stdClass $issuedcert Issued certificate Obj
+	 * @throws moodle_exception
+	 */
+	public function revoke_issued_cert($issuedcert) {
+	    return parent::revoke_issued_cert($issuedcert);
+	}
+	
+	
+	/**
+	 * Unrevoke an issued certificate
+	 *
+	 * @param stdClass $issuedcert Issued certificate Obj
+	 * @throws moodle_exception
+	 */
+	public function unrevoke_issued_cert($issuedcert) {
+	    return parent::unrevoke_issued_cert($issuedcert);
+	}
     
 }

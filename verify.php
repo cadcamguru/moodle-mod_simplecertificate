@@ -44,6 +44,7 @@ if (!$verifyform->get_data()) {
     
     $strto = get_string('awardedto', 'simplecertificate');
     $strdate = get_string('issueddate', 'simplecertificate');
+    $strrevoked = get_string('certificaterevoked', 'simplecertificate');
     $strcode = get_string('code', 'simplecertificate');
     
    
@@ -51,14 +52,18 @@ if (!$verifyform->get_data()) {
     $table = new html_table();
     $table->width = "95%";
     $table->tablealign = "center";
-    $table->head = array(get_string('course'), $strto, $strdate, $strcode);
+    $table->head = array(get_string('course'), $strto, $strdate, $strrevoked, $strcode);
     $table->align = array("left", "left", "center", "center");
     //Try to get coursename
     if(!$coursename = $DB->get_field('simplecertificate', 'coursename', array('id' => $issuedcert->certificateid))) {
         $coursename = get_string('coursenotfound', 'simplecertificate');
     }
-    $table->data[] = array($coursename, $username, 
-            userdate($issuedcert->timecreated) . simplecertificate_print_issue_certificate_file($issuedcert), $issuedcert->code);
+    $table->data[] = array($coursename, 
+                            $username, 
+                            userdate($issuedcert->timecreated) . simplecertificate_print_issue_certificate_file($issuedcert), 
+                            ($issuedcert->revoked == 1 ? get_string('yes') : get_string('no')), 
+                            $issuedcert->code
+                    );
     echo html_writer::table($table);
     
     // Add to log
