@@ -1179,7 +1179,6 @@ class simplecertificate {
         } else {
             $contextid = $context;
         }
-        $filename = str_replace(' ', '_', clean_filename($issuedcert->certificatename . ' ' . $issuedcert->id . '.pdf'));
         $fileinfo = array('contextid' => $contextid,
                 'component' => self::CERTIFICATE_COMPONENT_NAME,
                 'filearea' => self::CERTIFICATE_ISSUES_FILE_AREA,
@@ -1187,7 +1186,7 @@ class simplecertificate {
                 'filepath' => '/',
                 'mimetype' => 'application/pdf',
                 'userid' => $issuedcert->userid,
-                'filename' => $filename
+                'filename' => clean_filename(random_string(). '_'. $issuedcert->id . '.pdf')
         );
         
         return $fileinfo;
@@ -2371,12 +2370,7 @@ class simplecertificate {
             $type = $url->get_param('type');
             
             // Calculate file name
-            $filename = str_replace(' ', '_', 
-                                    clean_filename(
-                                                $this->get_instance()->coursename . ' ' .
-                                                 get_string('modulenameplural', 'simplecertificate') . ' ' .
-                                                 strip_tags(format_string($this->get_instance()->name, true)) . '.' .
-                                                 strip_tags(format_string($type, true))));
+            $filename = str_replace(' ', '_', clean_filename(get_string('modulenameplural', 'simplecertificate') . ' ' . random_string()));
             
             switch ($type) {
                 //One pdf with all certificates
@@ -2398,7 +2392,7 @@ class simplecertificate {
                             }
                         }
                     }
-                    $pdf->Output($filename, 'D');
+                    $pdf->Output($filename.'.pdf', 'D');
                 
                 break;
                 
@@ -2425,7 +2419,7 @@ class simplecertificate {
                     $zipper = new zip_packer();
                     if ($zipper->archive_to_pathname($filesforzipping, $tempzip)) {
                         //send file and delete after sending.
-                        send_temp_file($tempzip, $filename);
+                        send_temp_file($tempzip, $filename.'.zip');
                     }
                 break;
                 
