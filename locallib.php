@@ -1627,7 +1627,7 @@ class simplecertificate {
         }
         
         if ($search) {
-            $certtext = str_replace($search, $replace, $certtext);
+            $certtext = strip_links(str_replace($search, $replace, $certtext));
         }
         
         //Clear not setted custom profile fiedls {PROFILE_xxxx}
