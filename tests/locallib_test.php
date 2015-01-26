@@ -74,7 +74,7 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
         //Basic CRUD test
         $cert = $this->create_instance();
         $instance=$cert->get_instance();
-        $this->assertEquals($this->course->fullname, $instance->coursename);
+        $this->assertNotEquals($this->course->fullname, $instance->coursename);
         $instance->coursename='teste';
         $instanceoldtime=$instance->timemodified;
         $cert->update_instance($instance);
@@ -379,16 +379,16 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
         $file2 = $fs->get_file_by_hash($issuecert1->pathnamehash);
         
         $this->assertTrue($issuecert1->revoked == 1);
-        $this->assertEquals($issuecert1->pathnamehash, $file1->get_pathnamehash());
         $this->assertEquals($file1->get_filename(), $file2->get_filename());
+        $this->assertEquals($issuecert1->pathnamehash, $file1->get_pathnamehash());
         $this->assertNotEquals($file2->get_contenthash(), $file1->get_contenthash());
         
         // Verify if is unrevoked;
         $cert->unrevoke_issued_cert($issuecert1);
         $file3 = $fs->get_file_by_hash($issuecert1->pathnamehash);
         $this->assertTrue($issuecert1->revoked == 0);
-        $this->assertEquals($issuecert1->pathnamehash, $file1->get_pathnamehash());
-        $this->assertEquals($file1->get_filename(), $file3->get_filename());
+        $this->assertNotEquals($issuecert1->pathnamehash, $file1->get_pathnamehash());
+        $this->assertNotEquals($file1->get_filename(), $file3->get_filename());
         $this->assertNotEquals($file3->get_contenthash(), $file1->get_contenthash());
         $this->assertNotEquals($file3->get_contenthash(), $file2->get_contenthash());
         

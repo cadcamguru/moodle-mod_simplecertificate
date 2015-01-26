@@ -290,7 +290,15 @@ class simplecertificate {
                 }
             } else {
                 // Has certificate instance
-                $coursename = $certinstance->coursename;
+                if (empty($certinstance->coursename)) {
+                    if (!$coursename = $DB->get_field('course', 'fullname', array('id' => $certinstance->course),IGNORE_MISSING)) {
+                        error_log("Can't find course");
+                        // TODO add exception msg
+                        throw new moodle_exception('TODO');
+                    }
+                } else {
+                    $coursename = $certinstance->coursename;
+                }
             }
             
             // Assembling users filearea fileinfo
@@ -341,9 +349,6 @@ class simplecertificate {
             throw new coding_exception('Improper use of the simplecertificate class. ' . 'Cannot load the simplecertificate record.');
         }
         
-        if (!isset($this->instance->coursename)) {
-            $this->instance->coursename = $this->get_course()->fullname;
-        }
         return $this->instance;
     }
 
@@ -490,7 +495,7 @@ class simplecertificate {
             $formdata->secondimage = null;
         }
         
-        //Signatur Cert File
+        //Signature Cert File
         if (isset($formdata->crtsingnature)) {
         	if (!empty($formdata->crtsingnature)) {
         		$fileinfo = self::get_digital_sign_crt_fileinfo($this->context->id);
@@ -508,10 +513,6 @@ class simplecertificate {
         if (isset($formdata->instance)) {
             $update->id = $formdata->instance;
             unset($update->instance);
-        }
-        
-        if (empty($update->coursename)) {
-            $update->coursename = $this->get_course()->fullname;
         }
         
         return $update;
@@ -669,7 +670,7 @@ class simplecertificate {
             $issuecert->certificateid = $this->get_instance()->id;
             $issuecert->userid = $userid;
             $issuecert->haschange = 1;
-            $formated_coursename = str_replace('-', '_', $this->get_instance()->coursename);
+            $formated_coursename = str_replace('-', '_', $this->get_coursename());
             $formated_certificatename = str_replace('-', '_', $this->get_instance()->name);
             $issuecert->certificatename = format_string($formated_coursename . '-' . $formated_certificatename, true);
             $issuecert->timecreated = time();
@@ -696,7 +697,7 @@ class simplecertificate {
         
         //If cache or db issued certificate is maked as haschange, must update
         if (!empty($issuecert->haschange) && !$created) { //Check haschange, if so, reissue
-            $formated_coursename = str_replace('-', '_', $this->get_instance()->coursename);
+            $formated_coursename = str_replace('-', '_', $this->get_coursename());
             $formated_certificatename = str_replace('-', '_', $this->get_instance()->name);
             $issuecert->certificatename = format_string($formated_coursename . '-' . $formated_certificatename, true);
             $DB->update_record('simplecertificate_issues', $issuecert);
@@ -769,6 +770,16 @@ class simplecertificate {
         }
         
         echo html_writer::table($table);
+    }
+    
+    /**
+     *  Return course name or alternative course name
+     */
+    public function get_coursename() {
+        if (!empty($this->get_instance()->coursename)) {
+            return $this->get_instance()->coursename;
+        } 
+        return $this->get_course()->fullname;
     }
 
     /**
@@ -978,7 +989,7 @@ class simplecertificate {
                     
                     $info = new stdClass();
                     $info->student = fullname($USER);
-                    $info->course = format_string($this->get_instance()->coursename, true);
+                    $info->course = format_string($this->get_coursename(), true);
                     $info->certificate = format_string($this->get_instance()->name, true);
                     $info->url = $url->out();
                     $from = $info->student;
@@ -1013,13 +1024,13 @@ class simplecertificate {
         }
         
         // Remove commas to avoid a bug in TCPDF where a string containing a commas will result in two strings.
-        $keywords = get_string('keywords', 'simplecertificate') . ',' . format_string($this->get_instance()->coursename, true);
+        $keywords = get_string('keywords', 'simplecertificate') . ',' . format_string($this->get_coursename(), true);
         $keywords = str_replace(",", " ", $keywords); // Replace commas with spaces.
         $keywords = str_replace("  ", " ", $keywords); // Replace two spaces with one.
 
         $pdf = new pdf($orientation, 'mm', array($this->get_instance()->width, $this->get_instance()->height), true, 'UTF-8');
         $pdf->SetTitle($this->get_instance()->name);
-        $pdf->SetSubject($this->get_instance()->name . ' - ' . $this->get_instance()->coursename);
+        $pdf->SetSubject($this->get_instance()->name . ' - ' . $this->get_coursename());
         $pdf->SetKeywords($keywords);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
@@ -1069,7 +1080,7 @@ class simplecertificate {
                 
                 // TCPDF::setSignature ($signing_cert = '', $private_key = '', $private_key_password = '', $extracerts = '', $cert_type = 2, $info = array(), $approval = '')
                 $info = array(
-                        'Name' => $this->get_instance()->name . ' - ' . $this->get_instance()->coursename,
+                        'Name' => $this->get_instance()->name . ' - ' . $this->get_coursename(),
                         'Location' => $CFG->wwwroot,
                         'Reason' => get_string('awardedsubject','simplecertificate', array('student' => fullname($USER), 'certificate'=>format_string($this->get_instance()->name, true))),
                         'ContactInfo' => $CFG->supportname .'<'.$CFG->supportemail.'> - '. ((empty($CFG->supportpage))? $CFG->wwwroot : $CFG->supportpage)
@@ -1267,7 +1278,7 @@ class simplecertificate {
         $info = new stdClass();
         $info->username = format_string(fullname($user), true);
         $info->certificate = format_string($issuecert->certificatename, true);
-        $info->course = format_string($this->get_instance()->coursename, true);
+        $info->course = format_string($this->get_coursename(), true);
         
         $subject = get_string('emailstudentsubject', 'simplecertificate', $info);
         $message = get_string('emailstudenttext', 'simplecertificate', $info) . "\n";
@@ -1554,7 +1565,7 @@ class simplecertificate {
             $a->$key = $value;
         }
         
-        $a->coursename = format_string($this->get_instance()->coursename, true);
+        $a->coursename = format_string($this->get_coursename(), true);
         $a->grade = $this->get_grade($user->id);
         $a->date = $this->get_date($issuecert, $user->id);
         $a->outcome = $this->get_outcome($user->id);
@@ -2080,7 +2091,7 @@ class simplecertificate {
             $type = $url->get_param('type');
             // Calculate file name
             $filename = clean_filename(
-                                    $this->get_instance()->coursename . '-' .
+                                    $this->get_coursename() . '-' .
                                      strip_tags(format_string($this->get_instance()->name, true)) . '.' .
                                      strip_tags(format_string($type, true)));
             
@@ -2231,10 +2242,12 @@ class simplecertificate {
             $issuedcert->revoked = 1;
             
             if ($file = $this->get_issue_file($issuedcert)) {
+                $oldfilename = $file->get_filename();
                 $newcertfile_path = $this->put_watermark($file, strtoupper(get_string('certificaterevoked', 'simplecertificate')));
                 $file->delete();
                 $fs = get_file_storage();
                 $fileinfo = $this->get_issued_cert_fileinfo($this->get_context(), $issuedcert);
+                $fileinfo['filename'] = $oldfilename;
                 
                 if (!$newfile = $fs->create_file_from_pathname($fileinfo, $newcertfile_path)) {
                     print_error('cannotsavefile', 'error', '', $fileinfo['filename']);
