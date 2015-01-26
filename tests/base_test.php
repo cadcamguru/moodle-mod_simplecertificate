@@ -439,7 +439,7 @@ class testable_simplecertificate extends simplecertificate {
 	 * @param stdClass $issuedcert Issued certificate Obj
 	 * @throws moodle_exception
 	 */
-	public function revoke_issued_cert($issuedcert) {
+	public function revoke_issued_cert(stdClass $issuedcert) {
 	    return parent::revoke_issued_cert($issuedcert);
 	}
 	
@@ -450,7 +450,7 @@ class testable_simplecertificate extends simplecertificate {
 	 * @param stdClass $issuedcert Issued certificate Obj
 	 * @throws moodle_exception
 	 */
-	public function unrevoke_issued_cert($issuedcert) {
+	public function unrevoke_issued_cert(stdClass $issuedcert) {
 	    return parent::unrevoke_issued_cert($issuedcert);
 	}
     

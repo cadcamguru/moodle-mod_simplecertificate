@@ -268,9 +268,18 @@ function simplecertificate_cron() {
     $delta = $lifetime * $month;
     $timedeleted = $timenow - $delta;
     
-    if (!$DB->delete_records_select('simplecertificate_issues', 'timedeleted <= ?', array($timedeleted))) {
-        return false;
+    $issuedcrts=$DB->get_records_selec('simplecertificate_issues',"timedeleted <= ?", array($timedeleted));
+    foreach ($issuedcrts as $issuedcrt) {
+        try {
+            //Only delete recorde not the file
+            simplecertificate::delete_issued_certitificate($issuedcrt, false);
+        } catch (moodle_exception $e) {
+            mtrace($e->getMessage());
+            return false;
+        }
+        
     }
+   
     mtrace('done');
     return true;
 }

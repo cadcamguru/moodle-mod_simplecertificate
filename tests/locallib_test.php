@@ -363,8 +363,7 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
 
     public function test_revoke_unrevoke_issued_certificates() {
         echo __METHOD__ . "\n";
-        global $DB;
-        
+                
         $this->resetAfterTest();
         $this->setAdminUser();
         $cert = $this->create_instance();
@@ -394,6 +393,34 @@ class mod_simplecertificate_locallib_testcase extends mod_simplecertificate_base
         $this->assertNotEquals($file3->get_contenthash(), $file2->get_contenthash());
         
         $this->write_to_report("Can revoke/unrevoke issued certificates? Ok");
+    }
+    
+    public function test_physically_delete_issued_certificate() {
+        echo __METHOD__ . "\n";
+        global $DB;
+        
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $cert = $this->create_instance();
+        $issuecert1 = $cert->get_issue($this->students[0]);
+        
+        // Verify if cert files exists
+        $fs = get_file_storage();
+        $file1 = $cert->testable_get_issue_file($issuecert1);
+        //Only delete table record
+        $cert::delete_issued_certitificate($issuecert1, false);
+        $this->assertFalse($DB->get_record('simplecertificate_issues', array('id' => $issuecert1->id)));
+        $this->assertTrue($fs->file_exists_by_hash($issuecert1->pathnamehash));
+        $file1->delete();
+        
+        $issuecert2 = $cert->get_issue($this->students[1]);
+        $file2 = $cert->testable_get_issue_file($issuecert2);
+        //Deleting both, table record and file
+        $cert::delete_issued_certitificate($issuecert2, true);
+        $this->assertFalse($fs->file_exists_by_hash($issuecert2->pathnamehash));
+        $this->assertFalse($DB->get_record('simplecertificate_issues', array('id' => $issuecert2->id)));
+        
+        $this->write_to_report("Admin can physically delete issued certificate issued certificates? Ok");
     }
     
     public function test_detete_instace_update_timedelete_issues() {

@@ -540,6 +540,27 @@ class simplecertificate {
         $file = array_shift($files);
         return $file->get_filename();
     }
+
+    /**
+     * Physically delete issued certificate
+     * 
+     * @param stdClass $issuedcrt Issued certificate object
+     * @param boolean $deletefile if true delete issue cert file
+     * @throws moodle_exception
+     */
+    public static function delete_issued_certitificate(stdClass $issuedcrt, $deletefile) {
+        global $DB;
+        
+        $fs = get_file_storage();
+        
+        if ($deletefile && $fs->file_exists_by_hash($issuedcrt->pathnamehash)) {
+            $file = $fs->get_file_by_hash($issuedcrt->pathnamehash);
+            $file->delete();
+        }
+        if (!$DB->delete_records_select('simplecertificate_issues', 'id = ?', array($issuedcrt->id))) {
+            new moodle_exception('certificatenot', 'simplecertificate');
+        }
+    }
     
     /**
      * Get the first page background image fileinfo
@@ -2430,7 +2451,7 @@ class simplecertificate {
                     $certinstance = $this->get_instance();
                     foreach ($users as $user) {
                         if (!has_capability('mod/simplecertificate:manage', $this->context, $user)){
-                            $this->remove_issue($this->get_issue($user), $certinstance);
+                            simplecertificate::delete_issued_certitificate($this->get_issue($user), true);
                         }
                     }
                     $url->remove_params('action', 'type');
